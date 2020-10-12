@@ -1,0 +1,233 @@
+************************
+Overview Testing:
+************************
+
+========================
+1. TDD:
+========================
+
+Maven dependencies:
+   <properties>
+        <maven.compiler.release>11</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <groupId>org.example</groupId>
+    <artifactId>tdd3</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.hamcrest/hamcrest-all -->
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-all</artifactId>
+            <version>1.3</version>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>compile</scope>
+        </dependency>
+    </dependencies>
+
+
+
+Create Test Class using the Enso plug-in: use alt-t
+
+1. create the simplest test you can, name it; the does nothing test.
+
+- while you're writing the test method and List are created, structure is set.
+--> Red, Green and Refactor: test will give null pointer exception: see MovieStore Class, refactor, test: Green
+
+ @Test
+    public void returnsNoResultsWhenNoTitlesPartiallyMatchSearch() {
+        MovieStore movieStore =new MovieStore();
+        List<Movies> results = movieStore.findByPartialTitle("abc");
+        assertThat(results.size(), is(0));
+    }
+
+
+2. a better test:
+
+    @Test
+    public void findsMoviesWhenTitleIsPartiallyMatched() {
+        MovieStore movieStore =new MovieStore();
+        Movies harryPotter = new Movies("Harry Potter");
+        movieStore.add(harryPotter);
+        Movies starWars = new Movies("Star Wars");
+        movieStore.add(starWars);
+        Movies starTrek = new Movies("STAR trek");
+        movieStore.add(starTrek);
+        List<Movies> results = movieStore.findByPartialTitle("tar");
+        //actual --- expected:
+        assertThat(results.size(),is(2));
+        assertThat(results, containsInAnyOrder(starTrek,starWars));
+    }
+
+
+3. Refactor:
+
+properties +
+generate a setup method(shortcut?):
+
+    private final MovieStore movieStore = new MovieStore();
+
+    private final Movie harryPotter = new Movie("Harry Potter", "Rowling", 2000);
+    private final Movie starWars = new Movie("Star Wars", "Shwimmer", 1999);
+    private final Movie starTrek = new Movie("STAR Trek", "Shwimmer", 2002);
+    private final Movie shawshank = new Movie("Shawshank Redemption", "Bob", 2001);
+    private final Movie takeThat = new Movie("Take That", "Shwimmer", 2010);
+
+    @Before
+    public void setUp() throws Exception {
+        movieStore.add(shawshank);
+        movieStore.add(harryPotter);
+        movieStore.add(starWars);
+        movieStore.add(starTrek);
+        movieStore.add(takeThat);
+    }
+
+
+4. Full solution:
+
+a.class MovieStore
+b.class Movie
+c.class MovieStoreTest
+
+import model.Movie;
+
+import java.util.LinkedList;
+import java.util.List;
+
+public class MovieStore {
+    List<Movie> movies = new LinkedList<Movie>();
+
+    public void add(Movie movie) {
+        movies.add(movie);
+    }
+
+    public List<Movie> findByPartialTitle(final String partialTitle) {
+        return findBy(movie -> movie.title().toUpperCase().contains(partialTitle.toUpperCase()));
+    }
+
+    public List<Movie> findByDirector(final String director) {
+        return findBy(movie -> movie.director().equals(director));
+
+    }
+
+    public List<Movie> findByReleaseYear(final int from, final int to) {
+        return findBy(movie -> movie.releaseYear() > from && movie.releaseYear() < to);
+
+    }
+
+    private List<Movie> findBy(Predicate predicate) {
+        List<Movie> result = new LinkedList<Movie>();
+        for (Movie movie : movies) {
+            if(predicate.matches(movie)){
+                result.add(movie);
+            }
+        }
+        return result;
+    }
+
+    interface Predicate{
+        boolean matches(Movie movie);
+    }
+}
+
+
+package model;
+
+public class Movie {
+    private String title;
+    private String director;
+    private int releaseYear;
+
+    public Movie(String title, String director, int releaseYear) {
+
+        this.title = title;
+        this.director = director;
+        this.releaseYear = releaseYear;
+    }
+
+    public String title() {
+        return title;
+    }
+
+    public String director() {
+        return director;
+    }
+
+    public int releaseYear() {
+        return releaseYear;
+    }
+}
+
+
+import model.Movie;
+import org.junit.Before;
+import org.junit.Test;
+
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+
+
+public class MovieStoreTest {
+
+    private final MovieStore movieStore = new MovieStore();
+
+    private final Movie harryPotter = new Movie("Harry Potter", "Rowling", 2000);
+    private final Movie starWars = new Movie("Star Wars", "Shwimmer", 1999);
+    private final Movie starTrek = new Movie("STAR Trek", "Shwimmer", 2002);
+    private final Movie shawshank = new Movie("Shawshank Redemption", "Bob", 2001);
+    private final Movie takeThat = new Movie("Take That", "Shwimmer", 2010);
+
+    @Before
+    public void setUp() throws Exception {
+        movieStore.add(shawshank);
+        movieStore.add(harryPotter);
+        movieStore.add(starWars);
+        movieStore.add(starTrek);
+        movieStore.add(takeThat);
+    }
+
+    @Test
+    public void returnsNoResultsWhenNoTitlesPartiallyMatchSearch() throws Exception {
+        MovieStore movieStore = new MovieStore();
+
+        List<Movie> results = movieStore.findByPartialTitle("abc");
+
+        assertThat(results.size(), is(0));
+    }
+
+    @Test
+    public void findsMoviesWhenTitlesArePartiallyMatchedCaseInsensitive() throws Exception {
+        List<Movie> results = movieStore.findByPartialTitle("tar");
+
+        assertThat(results.size(), is(2));
+        assertThat(results, containsInAnyOrder(starTrek, starWars));
+    }
+
+    @Test
+    public void findsMoviesWhenDirectorExactlyMatches() throws Exception {
+        List<Movie> results = movieStore.findByDirector("Shwimmer");
+
+        assertThat(results.size(), is(3));
+        assertThat(results, containsInAnyOrder(starTrek, starWars, takeThat));
+    }
+
+    @Test
+    public void findsMoviesWhenReleaseYearIsBetweenTwoValues() throws Exception {
+        List<Movie> results = movieStore.findByReleaseYear(1999, 2002);
+
+        assertThat(results.size(), is(2));
+        assertThat(results, containsInAnyOrder(harryPotter, shawshank));
+    }
+
+}
