@@ -2,6 +2,16 @@
 Overview Testing:
 ************************
 
+Acceptance Testing
+    |
+System Testing
+    |
+Integration Testing
+    |
+Unit Testing
+
+
+
 ========================
 1. TDD:
 ========================
@@ -231,3 +241,77 @@ public class MovieStoreTest {
     }
 
 }
+
+
+
+==================================
+2. Integration Testing:
+==================================
+
+component = class or group of classes
+subsystem/system = group of components
+
+-->  testing the interaction of the components in a subsystem
+
+3 strategies:
+topdown: begin with root caller, stub uncomplete components
+bottom up: begin with elementary components
+adhoc: by order of implementation
+
+/**
+ * Demo for integration test
+ * - tests should run fast. Therefore test only what is not yet unit tested
+ * - Requires MongoDB running at default port 27017.
+ */
+@Ignore
+public class TicTacToeGameIntTest {
+    /****************************************************************************************
+     * BP2: integrate real MongoDb.
+     ****************************************************************************************/
+
+    /**
+     * 1: interface to MongoDb (drop and save) should work
+     */
+    @Test
+    public void givenMongoDbIsUp_WhenPlay_ThenDropAndSaveWork() {
+    	TicTacToeGame game = new TicTacToeGame();
+    	TicTacToeGameMove move1 = new TicTacToeGameMove(1, 'X', 1, 1);
+    	game.play(move1.getX(), move1.getY());
+
+    	TicTacToeGameMove move2 = new TicTacToeGameMove(2, 'O', 1, 2);
+    	game.play(move2.getX(), move2.getY());
+
+    	TicTacToeGameState state = new TicTacToeGameState();
+    	TicTacToeGameMove persistedMove1 = state.findById(move1.getId());
+    	TicTacToeGameMove persistedMove2 = state.findById(move2.getId());
+
+    	assertThat(persistedMove1, equalTo(move1));
+    	assertThat(persistedMove2, equalTo(move2));
+
+    }
+}
+
+===============
+Smoke Testing:
+===============
+testing if the system doesn't crash.
+
+// System does not smoke after invocation
+@Ignore
+public class TicTacToeSmokeTest {
+
+	@Test
+	public void whenDeployed_ThenWebsiteIsReachable() throws IOException {
+		URL url = new URL("http://localhost:8080/tictactoe");
+		URLConnection connection = url.openConnection();
+		assertThat(connection.getContent(), notNullValue());
+	}
+
+	@Test
+	public void whenDeployed_ThenDatabaseIsReachable() throws IOException {
+		TicTacToeGameState state = new TicTacToeGameState();
+		state.findById(4711);
+	}
+
+}
+
