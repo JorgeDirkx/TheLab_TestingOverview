@@ -4,12 +4,14 @@ import com.sybetech.business.TicTacToeGameMove;
 import org.junit.Before;
 import org.junit.Test;
 
+
+
 /**
  * Demo for testing framework util AssertJ
  * Benefits:
  * - fluent
  * - one import
- * use org.assertj.core.api.Java6Assertions.assertThat(.isEqualTo)(.hasSize)(.containsExactlyInAnyOrder)(.containsExactly)
+ * use  import static org.assertj.core.api.Java6Assertions.assertThat(.isEqualTo)(.hasSize)(.containsExactlyInAnyOrder)(.containsExactly)
  */
 public class TicTacToeGameMoveAssertJTest {
 
@@ -27,6 +29,7 @@ public class TicTacToeGameMoveAssertJTest {
     // check id is set after instantiation
     @Test
     public void whenInstantiated_ThenIdIsSet() {
+        assertThat(move.getY()).isEqualTo(y);
 
     }
 
@@ -51,6 +54,7 @@ public class TicTacToeGameMoveAssertJTest {
     // check allowedChars are O and X after instantiation
     @Test
     public void whenInstantiated_ThenAllowedCharsAreOandX() {
+        assertThat(move.getAllowedChars()).hasSize(2).contains('X','O');
 
     }
 }

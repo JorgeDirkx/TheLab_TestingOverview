@@ -11,6 +11,313 @@ Integration Testing
 Unit Testing
 
 
+========================================
+UNIT TESTING BASICS AND FRAMEWORKS:
+========================================
+
+import org.junit.*;
+import org.junit.rules.TestName;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+@Test
+public void whenInstantiated_ThenIdIsSet(){
+ TicTacToeGameMove move = new TicTacToeGameMove(1,'X',1,2);
+ assertEquals("Asserting that id is set in constructor",1,move.getId();
+ }
+
+
+Before and After each unit test:
+
+    @Before
+    public void setupMethod() {
+        // called before each method execution
+    	move = new TicTacToeGameMove(id, player, x, y);
+    	System.out.println("setupMethod");
+    }
+
+    @After
+    public void cleanupMethod() {
+        // called after each method execution
+    	move = null;
+    	System.out.println("cleanupMethod");
+    }
+
+*******************************************************************
+
+  // check allowedChars are O and X after instantiation
+    @Test
+    public void whenInstantiated_ThenAllowedCharsAreOandX() {
+    	List<Character> expectedChars = Arrays.asList('X', 'O');
+    	assertTrue(move.getAllowedChars().containsAll(expectedChars));
+    	assertEquals(2, move.getAllowedChars().size());
+    	System.out.println(name.getMethodName());
+    }
+
+
+// https://github.com/junit-team/junit4/wiki/rules (JUnit interceptors)
+    @Rule
+    public final TestName name = new TestName();
+
+     // check Rule TestName.getMethodName
+        @Test
+        public void whenGetMethodNameOfTestNameRuleInvoked_ThenReturnNameOfThisTest() {
+        	assertEquals("whenGetMethodNameOfTestNameRuleInvoked_ThenReturnNameOfThisTest", name.getMethodName());
+        	System.out.println(name.getMethodName());
+        }
+
+
+
+Before and After ALL unit tests:
+
+    @BeforeClass
+    public static void beforeClass() {
+        // called once on class initialization time
+    	System.out.println("beforeClass");
+    }
+
+    @AfterClass
+    public static void afterClass() {
+        // called once after all methods are executed
+    	System.out.println("afterClass");
+    }
+
+***********************************
+AssertJ Testing framework:
+***********************************
+
+- MAVEN
+
+import com.sybetech.business.TicTacToeGameMove;
+import org.junit.Before;
+import org.junit.Test;
+
+
+
+/**
+ * Demo for testing framework util AssertJ
+ * Benefits:
+ * - fluent
+ * - one import
+ * use  import static org.assertj.core.api.Java6Assertions.assertThat(.isEqualTo)(.hasSize)(.containsExactlyInAnyOrder)(.containsExactly)
+ */
+public class TicTacToeGameMoveAssertJTest {
+
+    private TicTacToeGameMove move;
+    private final int id = 3;
+    private final int x = 1;
+    private final int y = 1;
+    private final char player = 'X';
+
+    @Before
+    public void before() {
+        move = new TicTacToeGameMove(id, player, x, y);
+    }
+
+    // check id is set after instantiation
+    @Test
+    public void whenInstantiated_ThenIdIsSet() {
+        assertThat(move.getY()).isEqualTo(y);
+
+    }
+     // check allowedChars are O and X after instantiation
+        @Test
+        public void whenInstantiated_ThenAllowedCharsAreOandX() {
+            assertThat(move.getAllowedChars()).hasSize(2).contains('X','O');
+
+        }
+
+
+        =====>>>> FLUENT API !
+
+
+*********************************************************
+IMPLEMENT PERSISTENCE FUNCTIONALITY: DATABASE WRAPPER:
+*********************************************************
+save state of game in MongoDB
+
+import com.mongodb.DB;
+import com.mongodb.MongoClient;
+
+import org.jongo.FindOne;
+import org.jongo.Jongo;
+import org.jongo.MongoCollection;
+
+public class TicTacToeGameState {
+
+    static final String DB_NAME = "tic-tac-toe-db";
+    static final String COLLECTION_NAME = "tic-tac-toe-collection";
+    private MongoCollection mongoCollection; // create-read-update-delete
+
+    public TicTacToeGameState() {
+        // use new Jongo (MongoClient().getDB).getCollection to initialize mongoCollection
+    	mongoCollection = new Jongo (new MongoClient().getDB(DB_NAME)).getCollection(COLLECTION_NAME);
+    }
+
+    public boolean save(TicTacToeGameMove move) {
+    	try {
+    		getMongoCollection().save(move);
+		} catch (Exception e) {
+			return false;
+		}
+        return true;
+    }
+
+    public boolean clear() {
+    	try {
+    		getMongoCollection().drop();
+		} catch (Exception e) {
+			return false;
+		}
+        return true;
+    }
+
+    public TicTacToeGameMove findById(int id) {
+    	FindOne dbEntry = getMongoCollection().findOne("{_id:#}", id);
+        return dbEntry.as(TicTacToeGameMove.class);//jongo.org;
+    }
+
+    public MongoCollection getMongoCollection() {
+        return mongoCollection;
+    }
+}
+
+
+*****************************************
+MOCKITO: testing the DB functionality
+*****************************************
+import org.jongo.FindOne;
+import org.jongo.MongoCollection;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.runners.MockitoJUnitRunner;
+
+import com.mongodb.MongoException;
+
+import java.net.UnknownHostException;
+import static org.mockito.Mockito.*;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.*;
+/**
+ * Demo for mocking framework Mockito
+ * - spy (partial mocking): real object using real methods, unless specified otherwise
+ */
+@RunWith(MockitoJUnitRunner.class) // creates required mocks and inject them in the test class
+//@Ignore
+public class TicTacToeGameStateTest {
+    /*****************************************************************************************
+     * R5: use MongoDB as persistent storage for the game state.
+     ****************************************************************************************/
+
+    /**
+     * R5.1: implement bean for storage representation TicTacToeGameState
+     */
+
+    private TicTacToeGameState state;
+    private MongoCollection mongoCollection;
+    private TicTacToeGameMove move;
+
+    @Before
+    public void setUp() throws UnknownHostException {
+        // init move
+    	move = new TicTacToeGameMove(1, 'X', 1, 2);
+
+        // use method spy() to partial mock class to test
+    	state = spy(new TicTacToeGameState());
+
+        // use method mock(Class) to mock db dependency mongoCollection (all methods are shallow).
+    	mongoCollection = mock(MongoCollection.class);
+
+    }
+
+    /**
+     * R5.2: specify DB-Name
+     */
+    @Test
+    public void whenInstantiated_ThenMongoHasDbName() throws Exception {
+    	assertThat(state.getMongoCollection().getDBCollection().getDB().getName(), equalTo(TicTacToeGameState.DB_NAME));
+    }
+
+    /**
+     * R5.2: specify the mongo collection-name
+     */
+    @Test
+    public void whenInstantiated_ThenMongoCollectionHasName() throws Exception {
+    	assertThat(state.getMongoCollection().getName(), equalTo(TicTacToeGameState.COLLECTION_NAME));
+    }
+
+    /**
+     * R5.3: save data to mongo-db and return true
+     * use doReturn(mockObj).when(classToMock).methodToMock(), verify()
+     */
+    @Test
+    public void whenSave_ThenInvokeMongoCollectionSaveAndReturnTrue() throws Exception {
+    	doReturn(mongoCollection).when(state).getMongoCollection();
+    	boolean result = state.save(move);
+    	assertThat(result, equalTo(true));
+    }
+
+    /**
+     * R5.4: return false if MongoException occurs while saving
+     * use doReturn, doThrow
+     */
+    @Test
+    public void givenMongoException_WhenSave_ThenReturnFalse() {
+    	doReturn(mongoCollection).when(state).getMongoCollection();
+    	doThrow(new MongoException("saving failed")).when(mongoCollection).save(move);
+    	boolean result = state.save(move);
+    	assertThat(result, equalTo(false));
+    }
+
+    /**
+     * R5.5: specify droping data
+     */
+    @Test
+    public void whenClear_ThenInvokeMongoCollectionDrop() {
+    	doReturn(mongoCollection).when(state).getMongoCollection();
+    	boolean result = state.clear();
+    	assertThat(result, equalTo(true));
+    	verify(mongoCollection, times(1)).drop();
+    }
+
+    /**
+     * R5.6: return false if MongoException occurs while dropping
+     * use doReturn, doThrow
+     * check when exception occurs during clear, then clear returns false
+     */
+    @Test
+    public void givenMongoException_WhenClear_ThenReturnFalse() {
+    	doReturn(mongoCollection).when(state).getMongoCollection();
+    	doThrow(new MongoException("saving failed")).when(mongoCollection).drop();
+    	boolean result = state.clear();
+    	assertThat(result, equalTo(false));
+
+    }
+
+    @Test
+    public void whenFindById_ThenInvokeMongoCollectionFindOneAndReturnMove() throws Exception {
+    	// mock (check behavior)
+    	doReturn(mongoCollection).when(state).getMongoCollection();
+
+    	// stubbing (change state /result values
+    	FindOne findOne = mock(FindOne.class);
+    	doReturn(findOne).when(mongoCollection).findOne("{_id:#}", move.getId());
+    	doReturn(move).when(findOne).as(TicTacToeGameMove.class);
+
+    	TicTacToeGameMove result = state.findById(move.getId());
+    	assertThat(result, equalTo(move));
+    }
+}
+
+*******************************************
+REVIEW JaCoCO and eclEmma with IntelliJ
+*******************************************
+
+
 
 ========================
 1. TDD:
